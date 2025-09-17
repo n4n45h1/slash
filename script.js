@@ -1,6 +1,6 @@
 // @ts-check
 (() => {
-  const applicationId = "1345345340403879957";
+  const applicationId = "1409827362035601519";
 
   function log(message) {
     const area = document.getElementById("log");
