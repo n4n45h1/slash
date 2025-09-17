@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Discord Ravage スパムツール</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Discord Ravage スパムツール</h1>
+    <form id="configForm">
+      <label>
+        トークン:
+        <input type="password" id="token" required placeholder="Bot/ユーザートークンを入力"/>
+      </label>
+      <label>
+        サーバーID:
+        <input type="text" id="guildId" required placeholder="例: 123456789012345678"/>
+      </label>
+      <label>
+        送信するメッセージ:
+        <textarea id="message" required placeholder="送信する内容を入力"></textarea>
+      </label>
+      <button type="submit">実行する</button>
+    </form>
+    <div id="log"></div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
