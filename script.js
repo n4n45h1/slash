@@ -25,7 +25,7 @@
     return res.json();
   }
 
-  async function sendSpam(token, guildId, command, channelId, message, retry_count = 0) {
+  async function sendSpam(token, guildId, command, channelId, message, retryCount = 0) {
     const payload = {
       type: 2,
       application_id: applicationId,
@@ -51,10 +51,10 @@
       body: formData
     });
     if (res.status === 429) {
-      log(`チャンネル ${channelId} でレートリミット: リトライ...`);
-      await new Promise(r => setTimeout(r, 1000));
-      if (retry_count < 5) {
-        return sendSpam(token, guildId, command, channelId, message, retry_count + 1);
+      log(`チャンネル ${channelId} でレートリミット: リトライ(${retryCount + 1})...`);
+      if (retryCount < 5) {
+        await new Promise(r => setTimeout(r, 1000));
+        return sendSpam(token, guildId, command, channelId, message, retryCount + 1);
       } else {
         log(`チャンネル ${channelId} はリトライ上限に到達`);
       }
@@ -63,7 +63,7 @@
     }
   }
 
-  async function startSpam(token, guildId, message) {
+  async function startSpam(token, guildId, message, repeatCount) {
     log("Ravage コマンド一覧を取得中...");
     const idx = await fetchJson(
       "https://discord.com/api/v9/users/@me/application-command-index",
@@ -96,13 +96,15 @@
     );
     const textChannels = channels.filter(c => c.type === 0 || c.type === 5);
 
-    // 並列リクエスト送信
-    await Promise.all(
-      textChannels.map(ch =>
-        sendSpam(token, guildId, command, ch.id, message)
-      )
-    );
-    log("すべてのチャンネルへの送信が終了しました");
+    for (let i = 0; i < repeatCount; i++) {
+      log(`=== ${i + 1} 回目の送信を開始 ===`);
+      await Promise.all(
+        textChannels.map(ch => sendSpam(token, guildId, command, ch.id, message))
+      );
+      log(`=== ${i + 1} 回目の送信が完了 ===`);
+      // 各回の間に短いインターバルを入れたい場合はここで await new Promise(r => setTimeout(r, 2000)) などを追加
+    }
+    log("すべての繰り返し処理が完了しました");
   }
 
   document.getElementById("configForm").addEventListener("submit", async e => {
@@ -111,12 +113,13 @@
     const token = document.getElementById("token").value.trim();
     const guildId = document.getElementById("guildId").value.trim();
     const message = document.getElementById("message").value;
-    if (!/^\d+$/.test(guildId)) {
-      alert("サーバーID が不正です");
+    const repeatCount = parseInt(document.getElementById("repeatCount").value, 10);
+    if (!/^\d+$/.test(guildId) || repeatCount < 1) {
+      alert("サーバーID または繰り返し回数が間違っています");
       return;
     }
     try {
-      await startSpam(token, guildId, message);
+      await startSpam(token, guildId, message, repeatCount);
     } catch (err) {
       log("エラー: " + err.message);
     }
