@@ -25,7 +25,7 @@
     return res.json();
   }
 
-  async function sendSpam(token, guildId, command, channelId, message) {
+  async function sendSpam(token, guildId, command, channelId, message, retry_count = 0) {
     const payload = {
       type: 2,
       application_id: applicationId,
@@ -51,11 +51,16 @@
       body: formData
     });
     if (res.status === 429) {
-      log(`チャンネル ${channelId} でレートリミットにつかまりました。再試行...`);
+      log(`チャンネル ${channelId} でレートリミット: リトライ...`);
       await new Promise(r => setTimeout(r, 1000));
-      return sendSpam(token, guildId, command, channelId, message);
+      if (retry_count < 5) {
+        return sendSpam(token, guildId, command, channelId, message, retry_count + 1);
+      } else {
+        log(`チャンネル ${channelId} はリトライ上限に到達`);
+      }
+    } else {
+      log(`チャンネル ${channelId} に送信完了`);
     }
-    log(`チャンネル ${channelId} に送信完了`);
   }
 
   async function startSpam(token, guildId, message) {
@@ -91,11 +96,13 @@
     );
     const textChannels = channels.filter(c => c.type === 0 || c.type === 5);
 
-    for (const ch of textChannels) {
-      await sendSpam(token, guildId, command, ch.id, message);
-      await new Promise(r => setTimeout(r, 2000));
-    }
-    log("すべてのチャンネルへの送信が完了しました");
+    // 並列リクエスト送信
+    await Promise.all(
+      textChannels.map(ch =>
+        sendSpam(token, guildId, command, ch.id, message)
+      )
+    );
+    log("すべてのチャンネルへの送信が終了しました");
   }
 
   document.getElementById("configForm").addEventListener("submit", async e => {
